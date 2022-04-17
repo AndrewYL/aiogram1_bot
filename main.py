@@ -1,12 +1,19 @@
-import asyncio
 import sqlite3
 from aiogram import Bot, types
-from aiogram.dispatcher import Dispatcher
+from aiogram.dispatcher import Dispatcher, FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils import executor
 name = ''
 correct = ''
 bot = Bot(token='5282834057:AAGKZQR5A4HWvcE-oRr15Ucv_OPo2KCVdRA')
 dp = Dispatcher(bot)
+
+
+class User(StatesGroup):
+    answer_one = State()
+    answer_two = State()
+    continue_user = State()
+    answer_end = State()
 
 
 @dp.message_handler(commands=['start'])
@@ -53,10 +60,11 @@ async def start_message(message):
     markup.add(item2)
     markup.add(item3)
     await bot.send_message(message.chat.id, 'Выберите предмет:', reply_markup=markup)
+    await User.answer_one.set()
 
 
 @dp.message_handler(content_types=['text'])
-async def message_reply(message):
+async def message_reply(message: types.Message, state: FSMContext):
     global name
     global correct
     t = message.text
@@ -64,14 +72,16 @@ async def message_reply(message):
         con = sqlite3.connect('db/oge.db')
         cur = con.cursor()
         name = "Русский язык(ОГЭ)"
+        await state.update_data(item=name)
         result = cur.execute("""SELECT task, answer FROM rus_yaz
             WHERE id IN (SELECT id FROM rus_yaz ORDER BY RANDOM() LIMIT 1)""").fetchall()
         for elem in result:
             print(elem[1])
             correct = elem[1]
+            await state.update_data(true_answer=correct)
             await bot.send_photo(message.chat.id, photo=elem[0])
             await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            dp.register_message_handler(get_answer, content_types=message.text, state='*')
+            await User.answer_two.set()
         con.close()
     if message.text.lower() == "русский язык(егэ)":
         con = sqlite3.connect('db/ege.db')
@@ -219,11 +229,10 @@ async def message_reply(message):
         con.close()
 
 
-async def get_answer(message):
-    global answer
+async def get_answer(message: types.Message, state: FSMContext):
+    right_answer = await state.get_data()
     answer = message.text
-    if ''.join(answer.lower().split()) == correct:
-
+    if ''.join(answer.lower().split()) == right_answer['true_answer']:
         await bot.send_message(message.chat.id, 'Правильный ответ!')
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item1 = types.KeyboardButton("Попробовать еще")
@@ -231,11 +240,31 @@ async def get_answer(message):
         markup.add(item1)
         markup.add(item2)
         await bot.send_message(message.chat.id, 'Хотите попробовать еще?', reply_markup=markup)
-        await dp.register_message_handler(message, return0)
+        await User.continue_user.set()
+    elif ''.join(answer.lower().split()) == '/start':
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        item = types.KeyboardButton("/start")
+        markup.add(item)
+        await bot.send_message(message.chat.id, 'Начнем с начала!', reply_markup=markup)
+        await state.finish()
+    elif ''.join(answer.lower().split()) == '/oge':
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        item = types.KeyboardButton("/oge")
+        markup.add(item)
+        await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
+        await state.finish()
+    elif ''.join(answer.lower().split()) == '/ege':
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        item = types.KeyboardButton("/ege")
+        markup.add(item)
+        await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
+        await state.finish()
+    else:
+        await bot.send_message(message.chat.id, 'К сожалению, это неправильный ответ. Однако у Вас есть возможность '
+                                          'попробовать свои силы еще раз')
 
 
 async def last_answer(message):
-    global answer
     answer = message.text
     if ''.join(answer.lower().split()) == correct:
         await bot.send_message(message.chat.id, 'Правильный ответ!')
@@ -250,6 +279,7 @@ async def last_answer(message):
 
 async def return0(message):
     com = message.text
+    await 
     if com.lower() == 'попробовать еще':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item = types.KeyboardButton(f"{name}")
