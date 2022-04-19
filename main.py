@@ -34,10 +34,8 @@ async def start(message: types.Message, state: FSMContext):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("/oge")
     item2 = types.KeyboardButton("/ege")
-    item3 = types.KeyboardButton("/stats")
     markup.add(item1)
     markup.add(item2)
-    markup.add(item3)
     await message.answer(f"Здравствуйте, {message.from_user.first_name}!👋 Выберите пожалуйста экзамен📝",
                          reply_markup=markup)
 
