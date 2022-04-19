@@ -31,8 +31,10 @@ async def start(message: types.Message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("/oge")
     item2 = types.KeyboardButton("/ege")
+    item3 = types.KeyboardButton("/stats")
     markup.add(item1)
     markup.add(item2)
+    markup.add(item3)
     await message.answer(f"Здравствуйте, {message.from_user.first_name}!👋 Выберите пожалуйста экзамен📝",
                          reply_markup=markup)
 
@@ -45,6 +47,17 @@ async def help_handler(message: types.Message):
                                                  'Если Вы уже выбрали предмет, и Вам пришло задание,\n'
                                                  'пришлите боту ответ на данный вопрос,\n'
                                                  'Не забывайте, что у вас всегда есть 2 попытки на ответ!')
+
+
+@dp.message_handler(state='*', commands=['stats'])
+@dp.message_handler(lambda message: message.text.lower() == 'stats', state='*')
+async def statistics(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        await bot.send_message(message.from_user.id, 'Ваша статистика:\n',
+                               f"Количество правильных ответов: {data['right']}"
+                               f"Общее количество ответов: {data['all']}"
+                               f"Процент правильных ответов: {round((data['right'] / data['all'] * 100), 2)}"
+                               )
 
 
 @dp.message_handler(lambda message: message.text not in ["/oge",
@@ -351,46 +364,15 @@ async def process_predmet(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=Form.answer)
 async def last_answer(message: types.Message, state: FSMContext):
-    answer = message.text
-    otvet = await state.get_data()
-    if ''.join(answer.lower().split()) == otvet['answer']:
-        await bot.send_message(message.chat.id, 'Это правильный ответ!🎉')
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        item1 = types.KeyboardButton("Попробовать еще")
-        item2 = types.KeyboardButton("Отказаться")
-        markup.add(item1)
-        markup.add(item2)
-        await Form.end_ans.set()
-        await bot.send_message(message.chat.id, 'Хотите попробовать еще?', reply_markup=markup)
-    elif ''.join(answer.lower().split()) == '/start':
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        item = types.KeyboardButton("/start")
-        markup.add(item)
-        await state.reset_state(with_data=False)
-        await bot.send_message(message.chat.id, 'Начнем с начала!', reply_markup=markup)
-    elif ''.join(answer.lower().split()) == '/oge':
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        item = types.KeyboardButton("/oge")
-        markup.add(item)
-        await Form.examen.set()
-        await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
-    elif ''.join(answer.lower().split()) == '/ege':
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        item = types.KeyboardButton("/ege")
-        markup.add(item)
-        await Form.examen.set()
-        await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
-    else:
-        await bot.send_message(message.chat.id, 'К сожалению, это неправильный ответ. Однако у Вас есть возможность '
-                                          'попробовать свои силы еще раз')
-        await Form.wast_ans.set()
-
-
-@dp.message_handler(state=Form.wast_ans)
-async def last_answer(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         answer = message.text
         if ''.join(answer.lower().split()) == data['answer']:
+            if data['all'] in data.keys():
+                data['right'] += 1
+                data['all'] += 1
+            else:
+                data['right'] = 1
+                data['all'] = 1
             await bot.send_message(message.chat.id, 'Это правильный ответ!🎉')
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             item1 = types.KeyboardButton("Попробовать еще")
@@ -418,6 +400,53 @@ async def last_answer(message: types.Message, state: FSMContext):
             await Form.examen.set()
             await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
         else:
+            await bot.send_message(message.chat.id, 'К сожалению, это неправильный ответ. Однако у Вас есть возможность '
+                                              'попробовать свои силы еще раз')
+            await Form.wast_ans.set()
+
+
+@dp.message_handler(state=Form.wast_ans)
+async def last_answer(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        answer = message.text
+        if ''.join(answer.lower().split()) == data['answer']:
+            await bot.send_message(message.chat.id, 'Это правильный ответ!🎉')
+            if data['all'] in data.keys():
+                data['right'] += 1
+                data['all'] += 1
+            else:
+                data['right'] = 1
+                data['all'] = 1
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            item1 = types.KeyboardButton("Попробовать еще")
+            item2 = types.KeyboardButton("Отказаться")
+            markup.add(item1)
+            markup.add(item2)
+            await Form.end_ans.set()
+            await bot.send_message(message.chat.id, 'Хотите попробовать еще?', reply_markup=markup)
+        elif ''.join(answer.lower().split()) == '/start':
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            item = types.KeyboardButton("/start")
+            markup.add(item)
+            await state.reset_state(with_data=False)
+            await bot.send_message(message.chat.id, 'Начнем с начала!', reply_markup=markup)
+        elif ''.join(answer.lower().split()) == '/oge':
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            item = types.KeyboardButton("/oge")
+            markup.add(item)
+            await Form.examen.set()
+            await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
+        elif ''.join(answer.lower().split()) == '/ege':
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            item = types.KeyboardButton("/ege")
+            markup.add(item)
+            await Form.examen.set()
+            await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
+        else:
+            if data['all'] in data.keys():
+                data['all'] += 1
+            else:
+                data['all'] = 1
             await bot.send_message(message.chat.id, md.text(
                 md.text('К сожалению, это неправильный ответ'),
                 md.text(md.code('Правильный ответ:'), md.bold(data['answer'])),
