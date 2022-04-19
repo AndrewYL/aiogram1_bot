@@ -40,18 +40,18 @@ async def start(message: types.Message):
 @dp.message_handler(state='*', commands=['help'])
 @dp.message_handler(lambda message: message.text.lower() == 'help', state='*')
 async def help_handler(message: types.Message):
-    await bot.send_message(message.from_user.id, 'Если вы застряли на выборе экзамена или предмета,\n'
-                                                 'то выберите среди кнопок то, что вам нужно.\n'
-                                                 'Если вы уже выбрали предмет и вам пришло задание,\n'
-                                                 'то пришлите боту ответ на этот самый вопрос,\n'
-                                                 'и не забывайте, у вас всегда есть 2 попытки на ответ!')
+    await bot.send_message(message.from_user.id, 'Если Вы застряли на выборе экзамена или предмета,\n'
+                                                 'выберите среди кнопок то, что Вам нужно.\n'
+                                                 'Если Вы уже выбрали предмет и Вам пришло задание,\n'
+                                                 'то пришлите боту ответ на данный вопрос,\n'
+                                                 'Не забывайте, что у вас всегда есть 2 попытки на ответ!')
 
 
 @dp.message_handler(lambda message: message.text not in ["/oge",
                                                          "/ege"], state=Form.examen)
 async def failed_process_examen(message: types.Message):
 
-    return await message.reply("Вы неправильно ввели экзамен\n"
+    return await message.reply("Вы неправильно ввели экзамен.\n"
                                "Нажмите на одну из кнопку для его выбора")
 
 
@@ -109,7 +109,7 @@ async def process_ege(message: types.Message, state: FSMContext):
                                                          'биология(егэ)', 'география(егэ)',
                                                          'обществознание(егэ)', 'история(егэ)'], state=Form.predmet)
 async def failed_process_predmet(message: types.Message):
-    return await message.reply("Вы неправильно ввели предмет\n"
+    return await message.reply("Вы неправильно ввели предмет.\n"
                                "Нажмите на одну из кнопку для его выбора")
 
 
