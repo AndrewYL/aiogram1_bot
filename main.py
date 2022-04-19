@@ -27,7 +27,10 @@ class Form(StatesGroup):
 
 
 @dp.message_handler(commands=['start'])
-async def start(message: types.Message):
+async def start(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['all'] = 0
+        data['right'] = 0
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("/oge")
     item2 = types.KeyboardButton("/ege")
@@ -54,9 +57,9 @@ async def help_handler(message: types.Message):
 async def statistics(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         await bot.send_message(message.from_user.id, 'Ваша статистика:\n',
-                               f"Количество правильных ответов: {data['right']}"
-                               f"Общее количество ответов: {data['all']}"
-                               f"Процент правильных ответов: {round((data['right'] / data['all'] * 100), 2)}"
+                               f"Количество правильных ответов: {data['right']}\n"
+                               f"Общее количество ответов: {data['all']}'\n"
+                               f"Процент правильных ответов: {100 * round((data['right'] / data['all'] ), 2) if data['all'] != 0 else 0}\n"
                                )
 
 
@@ -367,12 +370,8 @@ async def last_answer(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         answer = message.text
         if ''.join(answer.lower().split()) == data['answer']:
-            if data['all'] in data.keys():
-                data['right'] += 1
-                data['all'] += 1
-            else:
-                data['right'] = 1
-                data['all'] = 1
+            data['right'] += 1
+            data['all'] += 1
             await bot.send_message(message.chat.id, 'Это правильный ответ!🎉')
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             item1 = types.KeyboardButton("Попробовать еще")
@@ -411,12 +410,8 @@ async def last_answer(message: types.Message, state: FSMContext):
         answer = message.text
         if ''.join(answer.lower().split()) == data['answer']:
             await bot.send_message(message.chat.id, 'Это правильный ответ!🎉')
-            if data['all'] in data.keys():
-                data['right'] += 1
-                data['all'] += 1
-            else:
-                data['right'] = 1
-                data['all'] = 1
+            data['right'] += 1
+            data['all'] += 1
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             item1 = types.KeyboardButton("Попробовать еще")
             item2 = types.KeyboardButton("Отказаться")
@@ -443,10 +438,7 @@ async def last_answer(message: types.Message, state: FSMContext):
             await Form.examen.set()
             await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
         else:
-            if data['all'] in data.keys():
-                data['all'] += 1
-            else:
-                data['all'] = 1
+            data['all'] += 1
             await bot.send_message(message.chat.id, md.text(
                 md.text('К сожалению, это неправильный ответ'),
                 md.text(md.code('Правильный ответ:'), md.bold(data['answer'])),
