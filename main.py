@@ -68,22 +68,41 @@ async def stats_handler(message: types.Message):
     db = sqlite3.connect('db/user_db.db')
     cdb = db.cursor()
     cdb.execute(f"SELECT user_id FROM users WHERE user_id = '{message.from_user.id}'")
+    cursor = db.cursor()
+    sql = "SELECT * FROM users ORDER BY all_ans DESC LIMIT 10"
+    cursor.execute(sql)
+    newlist = cursor.fetchall()  # or use fetchone()
+    sql_count = "SELECT COUNT(user_id) FROM users"
+    cursor.execute(sql_count)
+    count = cursor.fetchone()
     if cdb.fetchone() is None:
-        cdb.execute(f"INSERT INTO users VALUES(?,?,?,?,?)",
-                    (message.from_user.id, message.from_user.first_name, 0, 0, 0))
-        db.commit()
-        db.close()
-        await bot.send_message(message.from_user.id, 'Выполните хотя бы задание, чтобы появилась статистика!')
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        item1 = types.KeyboardButton("/start")
+        markup.add(item1)
+        await bot.send_message(message.from_user.id, 'Нажмите /start, чтобы для вас велась статистика!',
+                               reply_markup=markup)
     else:
         result = cdb.execute(f"""SELECT all_ans, right_ans, wrong_ans FROM users
-                        WHERE user_id = '{message.from_user.id}'""").fetchall()
+                            WHERE user_id = '{message.from_user.id}'""").fetchall()
         for elem in result:
-            await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Ваша статистика:')),
+            await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Личная статистика📊:')),
                                                                  md.text(' '),
-                                                                 md.text('Заданий отправлено: ', md.bold(elem[0])),
+                                                                 md.text('Заданий выполнено: ', md.bold(elem[0])),
                                                                  md.text(f'Верных ответов: ', md.bold(elem[1])),
                                                                  md.text(f'Неверных ответов: ', md.bold(elem[2])),
                                                                  sep='\n'), parse_mode=ParseMode.MARKDOWN)
+            rating = 'Всего пользователей: {}\n'.format(count[0])
+            i = 1
+            for user in newlist:
+                rating = rating + str(i) + ': ' + user[1] + ' - ' + str(user[2]) + '🏆\n'
+                i += 1
+            await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Глобальная статистика📊')),
+                                                                 md.text('Топ-10 пользователей по количеству'
+                                                                         ' выполненных заданий'),
+                                                                 md.text(' '),
+                                                                 sep='\n'), parse_mode=ParseMode.MARKDOWN)
+            await bot.send_message(message.from_user.id, rating)
+
         db.close()
 
 
@@ -94,7 +113,7 @@ async def failed_process_examen(message: types.Message):
                                "Нажмите на одну из кнопку для его выбора")
 
 
-@dp.message_handler(lambda message: message.text.lower() == '/oge', state=Form.examen)
+@dp.message_handler(lambda message: message.text.lower() == '/oge' or 'oge' or 'огэ', state=Form.examen)
 async def process_oge(message: types.Message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("Математика")
@@ -118,7 +137,7 @@ async def process_oge(message: types.Message):
     await message.answer("Выберите предмет", reply_markup=markup)
 
 
-@dp.message_handler(lambda message: message.text.lower() == '/ege', state=Form.examen)
+@dp.message_handler(lambda message: message.text.lower() == '/ege' or 'ege' or 'егэ', state=Form.examen)
 async def process_ege(message: types.Message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("Профильная математика")
@@ -166,13 +185,14 @@ async def process_predmet(message: types.Message, state: FSMContext):
     cdb.execute(f"UPDATE users SET all_ans = all_ans + 1 WHERE user_id = {message.from_user.id}")
     db.commit()
     db.close()
+    conoge = sqlite3.connect('db/oge.db')
+    conege = sqlite3.connect('db/ege.db')
     async with state.proxy() as data:
         data['predmet'] = message.text
         await Form.answer.set()
         await state.update_data(predmet=message.text)
         if message.text.lower() == "русский язык(егэ)":
-            con = sqlite3.connect('db/ege.db')
-            cur = con.cursor()
+            cur = conege.cursor()
             result = cur.execute("""SELECT task, answer FROM rus_yaz
                 WHERE id IN (SELECT id FROM rus_yaz ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -181,10 +201,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conege.close()
         if message.text.lower() == "русский язык(огэ)":
-            con = sqlite3.connect('db/oge.db')
-            cur = con.cursor()
+            cur = conoge.cursor()
             result = cur.execute("""SELECT task, answer FROM rus_yaz
                 WHERE id IN (SELECT id FROM rus_yaz ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -193,10 +212,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conoge.close()
         if message.text.lower() == 'физика(егэ)':
-            con = sqlite3.connect('db/ege.db')
-            cur = con.cursor()
+            cur = conege.cursor()
             result = cur.execute("""SELECT task, answer FROM fizika
                 WHERE id IN (SELECT id FROM fizika ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -205,10 +223,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conege.close()
         if message.text.lower() == 'информатика(егэ)':
-            con = sqlite3.connect('db/ege.db')
-            cur = con.cursor()
+            cur = conege.cursor()
             result = cur.execute("""SELECT task, answer FROM infor
                 WHERE id IN (SELECT id FROM infor ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -217,10 +234,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conege.close()
         if message.text.lower() == 'химия(егэ)':
-            con = sqlite3.connect('db/ege.db')
-            cur = con.cursor()
+            cur = conege.cursor()
             result = cur.execute("""SELECT task, answer FROM him
                 WHERE id IN (SELECT id FROM him ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -229,10 +245,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conege.close()
         if message.text.lower() == 'биология(егэ)':
-            con = sqlite3.connect('db/ege.db')
-            cur = con.cursor()
+            cur = conege.cursor()
             result = cur.execute("""SELECT task, answer FROM biol
                 WHERE id IN (SELECT id FROM biol ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -241,10 +256,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conege.close()
         if message.text.lower() == 'география(егэ)':
-            con = sqlite3.connect('db/ege.db')
-            cur = con.cursor()
+            cur = conege.cursor()
             result = cur.execute("""SELECT task, answer FROM geog
                 WHERE id IN (SELECT id FROM geog ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -253,10 +267,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conege.close()
         if message.text.lower() == 'обществознание(егэ)':
-            con = sqlite3.connect('db/ege.db')
-            cur = con.cursor()
+            cur = conege.cursor()
             result = cur.execute("""SELECT task, answer FROM obshes
                 WHERE id IN (SELECT id FROM obshes ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -265,10 +278,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conege.close()
         if message.text.lower() == 'история(егэ)':
-            con = sqlite3.connect('db/ege.db')
-            cur = con.cursor()
+            cur = conege.cursor()
             result = cur.execute("""SELECT task, answer FROM hist
                 WHERE id IN (SELECT id FROM hist ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -277,10 +289,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conege.close()
         if message.text.lower() == "профильная математика":
-            con = sqlite3.connect('db/ege.db')
-            cur = con.cursor()
+            cur = conege.cursor()
             result = cur.execute("""SELECT task, answer FROM mat_prof
                 WHERE id IN (SELECT id FROM mat_prof ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -289,10 +300,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conege.close()
         if message.text.lower() == "базовая математика":
-            con = sqlite3.connect('db/ege.db')
-            cur = con.cursor()
+            cur = conege.cursor()
             result = cur.execute("""SELECT task, answer FROM mat_baz
                 WHERE id IN (SELECT id FROM mat_baz ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -301,10 +311,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conege.close()
         if message.text.lower() == "математика":
-            con = sqlite3.connect('db/oge.db')
-            cur = con.cursor()
+            cur = conoge.cursor()
             result = cur.execute("""SELECT task, answer FROM matem
                  WHERE id IN (SELECT id FROM matem ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -313,10 +322,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conoge.close()
         if message.text.lower() == "физика(огэ)":
-            con = sqlite3.connect('db/oge.db')
-            cur = con.cursor()
+            cur = conoge.cursor()
             result = cur.execute("""SELECT task, answer FROM fizika
                  WHERE id IN (SELECT id FROM fizika ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -325,10 +333,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conoge.close()
         if message.text.lower() == "информатика(огэ)":
-            con = sqlite3.connect('db/oge.db')
-            cur = con.cursor()
+            cur = conoge.cursor()
             result = cur.execute("""SELECT task, answer FROM infor
                  WHERE id IN (SELECT id FROM infor ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -337,10 +344,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conoge.close()
         if message.text.lower() == "химия(огэ)":
-            con = sqlite3.connect('db/oge.db')
-            cur = con.cursor()
+            cur = conoge.cursor()
             result = cur.execute("""SELECT task, answer FROM him
                  WHERE id IN (SELECT id FROM him ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -349,10 +355,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conoge.close()
         if message.text.lower() == "биология(огэ)":
-            con = sqlite3.connect('db/oge.db')
-            cur = con.cursor()
+            cur = conoge.cursor()
             result = cur.execute("""SELECT task, answer FROM biol
                  WHERE id IN (SELECT id FROM biol ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -361,10 +366,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conoge.close()
         if message.text.lower() == "география(огэ)":
-            con = sqlite3.connect('db/oge.db')
-            cur = con.cursor()
+            cur = conoge.cursor()
             result = cur.execute("""SELECT task, answer FROM geog
                  WHERE id IN (SELECT id FROM geog ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -373,10 +377,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conoge.close()
         if message.text.lower() == "обществознание(огэ)":
-            con = sqlite3.connect('db/oge.db')
-            cur = con.cursor()
+            cur = conoge.cursor()
             result = cur.execute("""SELECT task, answer FROM obshes
                  WHERE id IN (SELECT id FROM obshes ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -385,10 +388,9 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conoge.close()
         if message.text.lower() == "история(огэ)":
-            con = sqlite3.connect('db/oge.db')
-            cur = con.cursor()
+            cur = conoge.cursor()
             result = cur.execute("""SELECT task, answer FROM hist
                  WHERE id IN (SELECT id FROM hist ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
@@ -397,7 +399,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 data['answer'] = elem[1]
                 await bot.send_photo(message.chat.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            con.close()
+            conoge.close()
 
 
 @dp.message_handler(state=Form.answer)
@@ -454,9 +456,9 @@ async def last_answer(message: types.Message, state: FSMContext):
 async def last_answer(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         answer = message.text
+        db = sqlite3.connect('db/user_db.db')
+        cdb = db.cursor()
         if ''.join(answer.lower().split()) == data['answer']:
-            db = sqlite3.connect('db/user_db.db')
-            cdb = db.cursor()
             cdb.execute(f"UPDATE users SET right_ans = right_ans + 1 WHERE user_id = {message.from_user.id}")
             db.commit()
             db.close()
@@ -495,8 +497,6 @@ async def last_answer(message: types.Message, state: FSMContext):
             await Form.examen.set()
             await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
         else:
-            db = sqlite3.connect('db/user_db.db')
-            cdb = db.cursor()
             cdb.execute(f"UPDATE users SET wrong_ans = wrong_ans + 1 WHERE user_id = {message.from_user.id}")
             db.commit()
             db.close()
