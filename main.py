@@ -7,8 +7,9 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import ParseMode
 from aiogram.utils import executor
+from tok_en import TOKEN
 
-API_TOKEN = '5282834057:AAH-8yzaRYWw_6bZ1IYhYsPUG182pMlgdPk'
+API_TOKEN = TOKEN
 
 loop = asyncio.get_event_loop()
 
