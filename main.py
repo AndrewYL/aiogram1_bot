@@ -8,7 +8,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import ParseMode
 from aiogram.utils import executor
 
-API_TOKEN = '5282834057:AAGKZQR5A4HWvcE-oRr15Ucv_OPo2KCVdRA'
+API_TOKEN = '5282834057:AAH-8yzaRYWw_6bZ1IYhYsPUG182pMlgdPk'
 
 loop = asyncio.get_event_loop()
 
@@ -77,33 +77,59 @@ async def stats_handler(message: types.Message):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item1 = types.KeyboardButton("/start")
         markup.add(item1)
-        await bot.send_message(message.from_user.id, 'Нажмите /start, чтобы для вас велась статистика!',
-                               reply_markup=markup)
+        cdb.execute(f"INSERT INTO users VALUES(?,?,?,?,?)",
+                    (message.from_user.id, message.from_user.first_name, 0, 0, 0))
+        db.commit()
+        db.close()
+        await message.answer('Вы занесены в базу данных!Нажмите /stats ещё раз(так как вы сначала не нажали start)')
     else:
         result = cdb.execute(f"""SELECT all_ans, right_ans, wrong_ans FROM users
                             WHERE user_id = '{message.from_user.id}'""").fetchall()
         for elem in result:
-            await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Личная статистика📊:')),
-                                                                 md.text(' '),
-                                                                 md.text('Заданий выполнено: ', md.bold(elem[0])),
-                                                                 md.text('Верных ответов: ', md.bold(elem[1]),
-                                                                         f' ({round((elem[1] / elem[0] * 100))}%)'),
-                                                                 md.text(f'Неверных ответов: ', md.bold(elem[2]),
-                                                                         f' ({round((elem[2] / elem[0] * 100))}%)'),
-                                                                 sep='\n'), parse_mode=ParseMode.MARKDOWN)
-            rating = 'Всего пользователей: {}\n'.format(count[0])
-            i = 1
-            for user in newlist:
-                rating = rating + str(i) + ' место: ' + user[1] + ' - ' + str(user[3]) +\
-                         f' ({round((user[3] / user[2] * 100))}%)' + '🏆\n'
-                i += 1
-            await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Глобальная статистика📊')),
-                                                                 md.text('Топ-10 пользователей по количеству'
-                                                                         ' правильных ответов'),
-                                                                 md.text(' '),
-                                                                 md.text(rating),
-                                                                 sep='\n'), parse_mode=ParseMode.MARKDOWN)
-        db.close()
+            if elem[0] == 0:
+                await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Личная статистика📊:')),
+                                                                     md.text(' '),
+                                                                     md.text('Заданий выполнено: ', md.bold(elem[0])),
+                                                                     md.text('Верных ответов: ', md.bold(elem[1]),
+                                                                             ' (0%)'),
+                                                                     md.text(f'Неверных ответов: ', md.bold(elem[2]),
+                                                                             ' (0%)'),
+                                                                     sep='\n'), parse_mode=ParseMode.MARKDOWN)
+                rating = 'Всего пользователей: {}\n'.format(count[0])
+                i = 1
+                for user in newlist:
+                    rating = rating + str(i) + ' место: ' + user[1] + ' - ' + str(user[3]) + \
+                             ' (0%)' + '🏆\n'
+                    i += 1
+                await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Глобальная статистика📊')),
+                                                                     md.text('Топ-10 пользователей по количеству'
+                                                                             ' правильных ответов'),
+                                                                     md.text(' '),
+                                                                     md.text(rating),
+                                                                     sep='\n'), parse_mode=ParseMode.MARKDOWN)
+                db.close()
+            else:
+                await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Личная статистика📊:')),
+                                                                     md.text(' '),
+                                                                     md.text('Заданий выполнено: ', md.bold(elem[0])),
+                                                                     md.text('Верных ответов: ', md.bold(elem[1]),
+                                                                             f' ({round((elem[1] / elem[0] * 100))}%)'),
+                                                                     md.text(f'Неверных ответов: ', md.bold(elem[2]),
+                                                                             f' ({round((elem[2] / elem[0] * 100))}%)'),
+                                                                     sep='\n'), parse_mode=ParseMode.MARKDOWN)
+                rating = 'Всего пользователей: {}\n'.format(count[0])
+                i = 1
+                for user in newlist:
+                    rating = rating + str(i) + ' место: ' + user[1] + ' - ' + str(user[3]) + \
+                             f' ({round((user[3] / user[2] * 100))}%)' + '🏆\n'
+                    i += 1
+                await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Глобальная статистика📊')),
+                                                                     md.text('Топ-10 пользователей по количеству'
+                                                                             ' правильных ответов'),
+                                                                     md.text(' '),
+                                                                     md.text(rating),
+                                                                     sep='\n'), parse_mode=ParseMode.MARKDOWN)
+                db.close()
 
 
 @dp.message_handler(lambda message: message.text not in ["/oge",
@@ -447,8 +473,9 @@ async def last_answer(message: types.Message, state: FSMContext):
         await Form.examen.set()
         await bot.send_message(message.from_user.id, 'Выберем другой предмет!', reply_markup=markup)
     else:
-        await bot.send_message(message.from_user.id, 'К сожалению, это неправильный ответ. Однако у Вас есть возможность '
-                                                'попробовать свои силы еще раз')
+        await bot.send_message(message.from_user.id,
+                               'К сожалению, это неправильный ответ. Однако у Вас есть возможность '
+                               'попробовать свои силы еще раз')
         await Form.wast_ans.set()
 
 
