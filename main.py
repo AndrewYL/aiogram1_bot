@@ -34,10 +34,8 @@ async def start(message: types.Message):
     item2 = types.KeyboardButton("/ege")
     item3 = types.KeyboardButton('/stats')
     item4 = types.KeyboardButton('/help')
-    markup.add(item1)
-    markup.add(item2)
-    markup.add(item3)
-    markup.add(item4)
+    markup.add(item1, item2)
+    markup.add(item3, item4)
     db = sqlite3.connect('db/user_db.db')
     cdb = db.cursor()
     cdb.execute(f"SELECT user_id FROM users WHERE user_id = '{message.from_user.id}'")
@@ -71,7 +69,7 @@ async def stats_handler(message: types.Message):
     cursor = db.cursor()
     sql = "SELECT * FROM users ORDER BY all_ans DESC LIMIT 10"
     cursor.execute(sql)
-    newlist = cursor.fetchall()  # or use fetchone()
+    newlist = cursor.fetchall()
     sql_count = "SELECT COUNT(user_id) FROM users"
     cursor.execute(sql_count)
     count = cursor.fetchone()
@@ -88,21 +86,23 @@ async def stats_handler(message: types.Message):
             await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Личная статистика📊:')),
                                                                  md.text(' '),
                                                                  md.text('Заданий выполнено: ', md.bold(elem[0])),
-                                                                 md.text(f'Верных ответов: ', md.bold(elem[1])),
-                                                                 md.text(f'Неверных ответов: ', md.bold(elem[2])),
+                                                                 md.text('Верных ответов: ', md.bold(elem[1]),
+                                                                         f' ({round((elem[1] / elem[0] * 100))}%)'),
+                                                                 md.text(f'Неверных ответов: ', md.bold(elem[2]),
+                                                                         f' ({round((elem[2] / elem[0] * 100))}%)'),
                                                                  sep='\n'), parse_mode=ParseMode.MARKDOWN)
             rating = 'Всего пользователей: {}\n'.format(count[0])
             i = 1
             for user in newlist:
-                rating = rating + str(i) + ': ' + user[1] + ' - ' + str(user[2]) + '🏆\n'
+                rating = rating + str(i) + ' место: ' + user[1] + ' - ' + str(user[3]) +\
+                         f' ({round((user[3] / user[2] * 100))}%)' + '🏆\n'
                 i += 1
             await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Глобальная статистика📊')),
                                                                  md.text('Топ-10 пользователей по количеству'
-                                                                         ' выполненных заданий'),
+                                                                         ' правильных ответов'),
                                                                  md.text(' '),
+                                                                 md.text(rating),
                                                                  sep='\n'), parse_mode=ParseMode.MARKDOWN)
-            await bot.send_message(message.from_user.id, rating)
-
         db.close()
 
 
@@ -113,7 +113,7 @@ async def failed_process_examen(message: types.Message):
                                "Нажмите на одну из кнопку для его выбора")
 
 
-@dp.message_handler(lambda message: message.text.lower() == '/oge' or 'oge' or 'огэ', state=Form.examen)
+@dp.message_handler(lambda message: message.text.lower() == '/oge', state=Form.examen)
 async def process_oge(message: types.Message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("Математика")
@@ -137,7 +137,7 @@ async def process_oge(message: types.Message):
     await message.answer("Выберите предмет", reply_markup=markup)
 
 
-@dp.message_handler(lambda message: message.text.lower() == '/ege' or 'ege' or 'егэ', state=Form.examen)
+@dp.message_handler(lambda message: message.text.lower() == '/ege', state=Form.examen)
 async def process_ege(message: types.Message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("Профильная математика")
@@ -210,7 +210,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conoge.close()
         if message.text.lower() == 'физика(егэ)':
@@ -221,7 +221,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conege.close()
         if message.text.lower() == 'информатика(егэ)':
@@ -232,7 +232,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conege.close()
         if message.text.lower() == 'химия(егэ)':
@@ -243,7 +243,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conege.close()
         if message.text.lower() == 'биология(егэ)':
@@ -254,7 +254,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conege.close()
         if message.text.lower() == 'география(егэ)':
@@ -265,7 +265,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conege.close()
         if message.text.lower() == 'обществознание(егэ)':
@@ -276,7 +276,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conege.close()
         if message.text.lower() == 'история(егэ)':
@@ -287,7 +287,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conege.close()
         if message.text.lower() == "профильная математика":
@@ -298,7 +298,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conege.close()
         if message.text.lower() == "базовая математика":
@@ -309,7 +309,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conege.close()
         if message.text.lower() == "математика":
@@ -320,7 +320,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conoge.close()
         if message.text.lower() == "физика(огэ)":
@@ -331,7 +331,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conoge.close()
         if message.text.lower() == "информатика(огэ)":
@@ -342,7 +342,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conoge.close()
         if message.text.lower() == "химия(огэ)":
@@ -353,7 +353,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conoge.close()
         if message.text.lower() == "биология(огэ)":
@@ -364,7 +364,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conoge.close()
         if message.text.lower() == "география(огэ)":
@@ -375,7 +375,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conoge.close()
         if message.text.lower() == "обществознание(огэ)":
@@ -386,7 +386,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conoge.close()
         if message.text.lower() == "история(огэ)":
@@ -397,7 +397,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
                 data['answer'] = elem[1]
-                await bot.send_photo(message.chat.id, photo=elem[0])
+                await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conoge.close()
 
@@ -412,7 +412,7 @@ async def last_answer(message: types.Message, state: FSMContext):
         cdb.execute(f"UPDATE users SET right_ans = right_ans + 1 WHERE user_id = {message.from_user.id}")
         db.commit()
         db.close()
-        await bot.send_message(message.chat.id, 'Это правильный ответ!🎉')
+        await bot.send_message(message.from_user.id, 'Это правильный ответ!🎉')
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item1 = types.KeyboardButton("Попробовать еще")
         item2 = types.KeyboardButton("Отказаться")
@@ -421,7 +421,7 @@ async def last_answer(message: types.Message, state: FSMContext):
         markup.add(item1, item2)
         markup.add(item3, item4)
         await Form.end_ans.set()
-        await bot.send_message(message.chat.id, 'Хотите попробовать еще?', reply_markup=markup)
+        await bot.send_message(message.from_user.id, 'Хотите попробовать еще?', reply_markup=markup)
     elif ''.join(answer.lower().split()) == '/start':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item = types.KeyboardButton("/start")
@@ -429,7 +429,7 @@ async def last_answer(message: types.Message, state: FSMContext):
         item2 = types.KeyboardButton('/help')
         markup.add(item, item1, item2)
         await state.reset_state(with_data=False)
-        await bot.send_message(message.chat.id, 'Начнем с начала!', reply_markup=markup)
+        await bot.send_message(message.from_user.id, 'Начнем с начала!', reply_markup=markup)
     elif ''.join(answer.lower().split()) == '/oge':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item = types.KeyboardButton("/oge")
@@ -437,7 +437,7 @@ async def last_answer(message: types.Message, state: FSMContext):
         item2 = types.KeyboardButton('/help')
         markup.add(item, item1, item2)
         await Form.examen.set()
-        await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
+        await bot.send_message(message.from_user.id, 'Выберем другой предмет!', reply_markup=markup)
     elif ''.join(answer.lower().split()) == '/ege':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item = types.KeyboardButton("/ege")
@@ -445,9 +445,9 @@ async def last_answer(message: types.Message, state: FSMContext):
         item2 = types.KeyboardButton('/help')
         markup.add(item, item1, item2)
         await Form.examen.set()
-        await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
+        await bot.send_message(message.from_user.id, 'Выберем другой предмет!', reply_markup=markup)
     else:
-        await bot.send_message(message.chat.id, 'К сожалению, это неправильный ответ. Однако у Вас есть возможность '
+        await bot.send_message(message.from_user.id, 'К сожалению, это неправильный ответ. Однако у Вас есть возможность '
                                                 'попробовать свои силы еще раз')
         await Form.wast_ans.set()
 
@@ -462,7 +462,7 @@ async def last_answer(message: types.Message, state: FSMContext):
             cdb.execute(f"UPDATE users SET right_ans = right_ans + 1 WHERE user_id = {message.from_user.id}")
             db.commit()
             db.close()
-            await bot.send_message(message.chat.id, 'Это правильный ответ!🎉')
+            await bot.send_message(message.from_user.id, 'Это правильный ответ!🎉')
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             item1 = types.KeyboardButton("Попробовать еще")
             item2 = types.KeyboardButton("Отказаться")
@@ -471,7 +471,7 @@ async def last_answer(message: types.Message, state: FSMContext):
             markup.add(item1, item2)
             markup.add(item3, item4)
             await Form.end_ans.set()
-            await bot.send_message(message.chat.id, 'Хотите попробовать еще?', reply_markup=markup)
+            await bot.send_message(message.from_user.id, 'Хотите попробовать еще?', reply_markup=markup)
         elif ''.join(answer.lower().split()) == '/start':
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             item = types.KeyboardButton("/start")
@@ -479,7 +479,7 @@ async def last_answer(message: types.Message, state: FSMContext):
             item2 = types.KeyboardButton('/help')
             markup.add(item, item1, item2)
             await state.reset_state(with_data=False)
-            await bot.send_message(message.chat.id, 'Начнем с начала!', reply_markup=markup)
+            await bot.send_message(message.from_user.id, 'Начнем с начала!', reply_markup=markup)
         elif ''.join(answer.lower().split()) == '/oge':
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             item = types.KeyboardButton("/oge")
@@ -487,7 +487,7 @@ async def last_answer(message: types.Message, state: FSMContext):
             item2 = types.KeyboardButton('/help')
             markup.add(item, item1, item2)
             await Form.examen.set()
-            await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
+            await bot.send_message(message.from_user.id, 'Выберем другой предмет!', reply_markup=markup)
         elif ''.join(answer.lower().split()) == '/ege':
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             item = types.KeyboardButton("/ege")
@@ -495,12 +495,12 @@ async def last_answer(message: types.Message, state: FSMContext):
             item2 = types.KeyboardButton('/help')
             markup.add(item, item1, item2)
             await Form.examen.set()
-            await bot.send_message(message.chat.id, 'Выберем другой предмет!', reply_markup=markup)
+            await bot.send_message(message.from_user.id, 'Выберем другой предмет!', reply_markup=markup)
         else:
             cdb.execute(f"UPDATE users SET wrong_ans = wrong_ans + 1 WHERE user_id = {message.from_user.id}")
             db.commit()
             db.close()
-            await bot.send_message(message.chat.id, md.text(
+            await bot.send_message(message.from_user.id, md.text(
                 md.text('К сожалению, это неправильный ответ'),
                 md.text(md.code('Правильный ответ:'), md.bold(data['answer'])),
                 sep='\n'), parse_mode=ParseMode.MARKDOWN)
@@ -512,7 +512,7 @@ async def last_answer(message: types.Message, state: FSMContext):
             markup.add(item1, item2)
             markup.add(item3, item4)
             await Form.end_ans.set()
-            await bot.send_message(message.chat.id, 'Хотите попробовать еще?', reply_markup=markup)
+            await bot.send_message(message.from_user.id, 'Хотите попробовать еще?', reply_markup=markup)
 
 
 @dp.message_handler(state=Form.end_ans)
