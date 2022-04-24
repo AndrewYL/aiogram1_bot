@@ -19,7 +19,7 @@ storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
 
-class Form(StatesGroup):
+class User(StatesGroup):
     examen = State()
     predmet = State()
     answer = State()
@@ -28,8 +28,8 @@ class Form(StatesGroup):
 
 
 @dp.message_handler(commands=['start'])
-async def start(message: types.Message):
-    await Form.examen.set()
+async def start_handler(message: types.Message):
+    await User.examen.set()
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("/oge")
     item2 = types.KeyboardButton("/ege")
@@ -134,13 +134,13 @@ async def stats_handler(message: types.Message):
 
 
 @dp.message_handler(lambda message: message.text not in ["/oge",
-                                                         "/ege"], state=Form.examen)
+                                                         "/ege"], state=User.examen)
 async def failed_process_examen(message: types.Message):
     return await message.reply("Вы неправильно ввели экзамен\n"
                                "Нажмите на одну из кнопку для его выбора")
 
 
-@dp.message_handler(lambda message: message.text.lower() == '/oge', state=Form.examen)
+@dp.message_handler(lambda message: message.text.lower() == '/oge', state=User.examen)
 async def process_oge(message: types.Message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("Математика")
@@ -160,11 +160,11 @@ async def process_oge(message: types.Message):
     markup.add(item7, item8)
     markup.add(item9)
     markup.add(item10, item11)
-    await Form.predmet.set()
+    await User.predmet.set()
     await message.answer("Выберите предмет", reply_markup=markup)
 
 
-@dp.message_handler(lambda message: message.text.lower() == '/ege', state=Form.examen)
+@dp.message_handler(lambda message: message.text.lower() == '/ege', state=User.examen)
 async def process_ege(message: types.Message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("Профильная математика")
@@ -185,7 +185,7 @@ async def process_ege(message: types.Message):
     markup.add(item7, item8)
     markup.add(item9, item10)
     markup.add(item11, item12)
-    await Form.predmet.set()
+    await User.predmet.set()
     await message.answer("Выберите предмет", reply_markup=markup)
 
 
@@ -199,13 +199,13 @@ async def process_ege(message: types.Message):
                                                                  'информатика(егэ)', "химия(егэ)",
                                                                  'биология(егэ)', 'география(егэ)',
                                                                  'обществознание(егэ)', 'история(егэ)'],
-                    state=Form.predmet)
+                    state=User.predmet)
 async def failed_process_predmet(message: types.Message):
     return await message.reply("Вы неправильно ввели предмет\n"
                                "Нажмите на одну из кнопку для его выбора")
 
 
-@dp.message_handler(lambda message: message.text.lower(), state=Form.predmet)
+@dp.message_handler(lambda message: message.text.lower(), state=User.predmet)
 async def process_predmet(message: types.Message, state: FSMContext):
     db = sqlite3.connect('db/user_db.db')
     cdb = db.cursor()
@@ -216,7 +216,7 @@ async def process_predmet(message: types.Message, state: FSMContext):
     conege = sqlite3.connect('db/ege.db')
     async with state.proxy() as data:
         data['predmet'] = message.text
-        await Form.answer.set()
+        await User.answer.set()
         await state.update_data(predmet=message.text)
         if message.text.lower() == "русский язык(егэ)":
             cur = conege.cursor()
@@ -429,8 +429,8 @@ async def process_predmet(message: types.Message, state: FSMContext):
             conoge.close()
 
 
-@dp.message_handler(state=Form.answer)
-async def last_answer(message: types.Message, state: FSMContext):
+@dp.message_handler(state=User.answer)
+async def first_answer(message: types.Message, state: FSMContext):
     answer = message.text
     otvet = await state.get_data()
     if ''.join(answer.lower().split()) == otvet['answer']:
@@ -447,7 +447,7 @@ async def last_answer(message: types.Message, state: FSMContext):
         item4 = types.KeyboardButton('/help')
         markup.add(item1, item2)
         markup.add(item3, item4)
-        await Form.end_ans.set()
+        await User.end_ans.set()
         await bot.send_message(message.from_user.id, 'Хотите попробовать еще?', reply_markup=markup)
     elif ''.join(answer.lower().split()) == '/start':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -463,7 +463,7 @@ async def last_answer(message: types.Message, state: FSMContext):
         item1 = types.KeyboardButton('/stats')
         item2 = types.KeyboardButton('/help')
         markup.add(item, item1, item2)
-        await Form.examen.set()
+        await User.examen.set()
         await bot.send_message(message.from_user.id, 'Выберем другой предмет!', reply_markup=markup)
     elif ''.join(answer.lower().split()) == '/ege':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -471,17 +471,17 @@ async def last_answer(message: types.Message, state: FSMContext):
         item1 = types.KeyboardButton('/stats')
         item2 = types.KeyboardButton('/help')
         markup.add(item, item1, item2)
-        await Form.examen.set()
+        await User.examen.set()
         await bot.send_message(message.from_user.id, 'Выберем другой предмет!', reply_markup=markup)
     else:
         await bot.send_message(message.from_user.id,
                                'К сожалению, это неправильный ответ. Однако у Вас есть возможность '
                                'попробовать свои силы еще раз')
-        await Form.wast_ans.set()
+        await User.wast_ans.set()
 
 
-@dp.message_handler(state=Form.wast_ans)
-async def last_answer(message: types.Message, state: FSMContext):
+@dp.message_handler(state=User.wast_ans)
+async def second_answer(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         answer = message.text
         db = sqlite3.connect('db/user_db.db')
@@ -498,7 +498,7 @@ async def last_answer(message: types.Message, state: FSMContext):
             item4 = types.KeyboardButton('/help')
             markup.add(item1, item2)
             markup.add(item3, item4)
-            await Form.end_ans.set()
+            await User.end_ans.set()
             await bot.send_message(message.from_user.id, 'Хотите попробовать еще?', reply_markup=markup)
         elif ''.join(answer.lower().split()) == '/start':
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -514,7 +514,7 @@ async def last_answer(message: types.Message, state: FSMContext):
             item1 = types.KeyboardButton('/stats')
             item2 = types.KeyboardButton('/help')
             markup.add(item, item1, item2)
-            await Form.examen.set()
+            await User.examen.set()
             await bot.send_message(message.from_user.id, 'Выберем другой предмет!', reply_markup=markup)
         elif ''.join(answer.lower().split()) == '/ege':
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -522,7 +522,7 @@ async def last_answer(message: types.Message, state: FSMContext):
             item1 = types.KeyboardButton('/stats')
             item2 = types.KeyboardButton('/help')
             markup.add(item, item1, item2)
-            await Form.examen.set()
+            await User.examen.set()
             await bot.send_message(message.from_user.id, 'Выберем другой предмет!', reply_markup=markup)
         else:
             cdb.execute(f"UPDATE users SET wrong_ans = wrong_ans + 1 WHERE user_id = {message.from_user.id}")
@@ -539,11 +539,11 @@ async def last_answer(message: types.Message, state: FSMContext):
             item4 = types.KeyboardButton('/help')
             markup.add(item1, item2)
             markup.add(item3, item4)
-            await Form.end_ans.set()
+            await User.end_ans.set()
             await bot.send_message(message.from_user.id, 'Хотите попробовать еще?', reply_markup=markup)
 
 
-@dp.message_handler(state=Form.end_ans)
+@dp.message_handler(state=User.end_ans)
 async def process_end_ans(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         com = message.text
@@ -554,7 +554,7 @@ async def process_end_ans(message: types.Message, state: FSMContext):
             item2 = types.KeyboardButton('/help')
             markup.add(item)
             markup.add(item1, item2)
-            await Form.predmet.set()
+            await User.predmet.set()
             await bot.send_message(message.from_user.id, 'Начнем с начала', reply_markup=markup)
         else:
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
