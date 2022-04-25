@@ -67,13 +67,6 @@ async def stats_handler(message: types.Message):
     db = sqlite3.connect('db/user_db.db')
     cdb = db.cursor()
     cdb.execute(f"SELECT user_id FROM users WHERE user_id = '{message.from_user.id}'")
-    cursor = db.cursor()
-    sql = "SELECT * FROM users ORDER BY all_ans DESC LIMIT 10"
-    cursor.execute(sql)
-    newlist = cursor.fetchall()
-    sql_count = "SELECT COUNT(user_id) FROM users"
-    cursor.execute(sql_count)
-    count = cursor.fetchone()
     if cdb.fetchone() is None:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item1 = types.KeyboardButton("/start")
@@ -96,48 +89,24 @@ async def stats_handler(message: types.Message):
                                                                      md.text(f'Неверных ответов: ', md.bold(elem[2]),
                                                                              ' (0%)'),
                                                                      sep='\n'), parse_mode=ParseMode.MARKDOWN)
-                rating = 'Всего пользователей: {}\n'.format(count[0])
-                i = 1
-                for user in newlist:
-                    rating = rating + str(i) + ' место: ' + user[1] + ' - ' + str(user[3]) + \
-                             ' (0%)' + '🏆\n'
-                    i += 1
-                await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Глобальная статистика📊')),
-                                                                     md.text('Топ-10 пользователей по количеству'
-                                                                             ' правильных ответов'),
-                                                                     md.text(' '),
-                                                                     md.text(rating),
-                                                                     sep='\n'), parse_mode=ParseMode.MARKDOWN)
-                db.close()
             else:
                 await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Личная статистика📊:')),
                                                                      md.text(' '),
-                                                                     md.text('Заданий выполнено: ', md.bold(elem[0])),
-                                                                     md.text('Верных ответов: ', md.bold(elem[1]),
-                                                                             f' ({round((elem[1] / elem[0] * 100))}%)'),
+                                                                     md.text('Заданий выполнено: ',
+                                                                             md.bold(elem[0])),
+                                                                     md.text('Верных ответов: ',
+                                                                             md.bold(elem[1]),
+                                                                     f' ({round((elem[1] / elem[0] * 100), 1)}%)'),
                                                                      md.text(f'Неверных ответов: ', md.bold(elem[2]),
-                                                                             f' ({round((elem[2] / elem[0] * 100))}%)'),
+                                                                     f' ({round((elem[2] / elem[0] * 100), 1)}%)'),
                                                                      sep='\n'), parse_mode=ParseMode.MARKDOWN)
-                rating = 'Всего пользователей: {}\n'.format(count[0])
-                i = 1
-                for user in newlist:
-                    rating = rating + str(i) + ' место: ' + user[1] + ' - ' + str(user[3]) + \
-                             f' ({round((user[3] / user[2] * 100))}%)' + '🏆\n'
-                    i += 1
-                await bot.send_message(message.from_user.id, md.text(md.text(md.bold('Глобальная статистика📊')),
-                                                                     md.text('Топ-10 пользователей по количеству'
-                                                                             ' правильных ответов'),
-                                                                     md.text(' '),
-                                                                     md.text(rating),
-                                                                     sep='\n'), parse_mode=ParseMode.MARKDOWN)
-                db.close()
 
 
 @dp.message_handler(lambda message: message.text not in ["/oge",
                                                          "/ege"], state=User.examen)
 async def failed_process_examen(message: types.Message):
     return await message.reply("Вы неправильно ввели экзамен\n"
-                               "Нажмите на одну из кнопку для его выбора")
+                               "Нажмите на одну из кнопок для его выбора")
 
 
 @dp.message_handler(lambda message: message.text.lower() == '/oge', state=User.examen)
@@ -202,7 +171,7 @@ async def process_ege(message: types.Message):
                     state=User.predmet)
 async def failed_process_predmet(message: types.Message):
     return await message.reply("Вы неправильно ввели предмет\n"
-                               "Нажмите на одну из кнопку для его выбора")
+                               "Нажмите на одну из кнопок для его выбора")
 
 
 @dp.message_handler(lambda message: message.text.lower(), state=User.predmet)
