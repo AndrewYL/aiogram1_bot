@@ -53,7 +53,11 @@ async def start_handler(message: types.Message):
 @dp.message_handler(state='*', commands=['help'])  # команда "/help"
 @dp.message_handler(lambda message: message.text.lower() == 'help', state='*')
 async def help_handler(message: types.Message):
-    await bot.send_message(message.from_user.id, 'Если вы застряли на выборе экзамена или предмета, то выберите'
+    await bot.send_message(message.from_user.id, '/start - запуск бота\n'
+                                                 '/oge - выбрать экзамен ОГЭ\n'
+                                                 '/ege - выбрать экзамен ЕГЭ\n'
+                                                 '/stats - вывод статистики\n'
+                                                 'Если вы застряли на выборе экзамена или предмета, то выберите'
                                                  ' среди кнопок то, что вам нужно. '
                                                  'Если вы уже выбрали предмет и вам пришло задание, '
                                                  'то пришлите боту ответ на этот самый вопрос. '
