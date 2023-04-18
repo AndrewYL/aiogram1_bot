@@ -53,13 +53,17 @@ async def start_handler(message: types.Message):
 @dp.message_handler(state='*', commands=['help'])  # команда "/help"
 @dp.message_handler(lambda message: message.text.lower() == 'help', state='*')
 async def help_handler(message: types.Message):
-    await bot.send_message(message.from_user.id, 'Если вы застряли на выборе экзамена или предмета, то выберите'
-                                                 ' среди кнопок то, что вам нужно. '
-                                                 'Если вы уже выбрали предмет и вам пришло задание, '
-                                                 'то пришлите боту ответ на этот самый вопрос. '
-                                                 'Если вы застряли в меню статистики и не можете вызвать другую'
-                                                 ' любую команду, перезапустите бота командой /start. '
-                                                 'И не забывайте, у вас всегда есть 2 попытки на ответ!')
+    await bot.send_message(message.from_user.id, "Список команд:\n"
+                                                 '/start - запуск бота\n'
+                                                 '/oge - выбрать экзамен ОГЭ\n'
+                                                 '/ege - выбрать экзамен ЕГЭ\n'
+                                                 '/stats - показать статистику\n'
+                                                 'Если вы не знаете, какой экзамен или предмет выбрать, '
+                                                 'используйте кнопки на экране для выбора. Если вы уже выбрали предмет'
+                                                 ' и получили задание, отправьте боту ответ на этот вопрос. '
+                                                 'Если вы застряли в меню статистики и не можете вызвать другую команду,'
+                                                 ' перезапустите бота, используя команду /start. И помните, что у '
+                                                 'вас есть 2 попытки на ответ.')
 
 
 @dp.message_handler(state='*', commands=['stats'])  # команда "/stats"
@@ -111,52 +115,56 @@ async def failed_process_examen(message: types.Message):
 
 
 @dp.message_handler(lambda message: message.text.lower() == '/oge', state=User.examen)  # команда "/oge"
-async def process_oge(message: types.Message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    item1 = types.KeyboardButton("Математика")
-    item2 = types.KeyboardButton("Русский язык(ОГЭ)")
-    item3 = types.KeyboardButton("Физика(ОГЭ)")
-    item4 = types.KeyboardButton("Информатика(ОГЭ)")
-    item5 = types.KeyboardButton("Химия(ОГЭ)")
-    item6 = types.KeyboardButton("Биология(ОГЭ)")
-    item7 = types.KeyboardButton("География(ОГЭ)")
-    item8 = types.KeyboardButton("Обществознание(ОГЭ)")
-    item9 = types.KeyboardButton("История(ОГЭ)")
-    item10 = types.KeyboardButton('/stats')
-    item11 = types.KeyboardButton('/help')
-    markup.add(item1, item2)
-    markup.add(item3, item4)
-    markup.add(item5, item6)
-    markup.add(item7, item8)
-    markup.add(item9)
-    markup.add(item10, item11)
-    await User.predmet.set()  # включаем состояние выбора предмета
-    await message.answer("Выберите предмет", reply_markup=markup)
+async def process_oge(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['vibor_ex'] = 'oge'
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        item1 = types.KeyboardButton("Математика")
+        item2 = types.KeyboardButton("Русский язык(ОГЭ)")
+        item3 = types.KeyboardButton("Физика(ОГЭ)")
+        item4 = types.KeyboardButton("Информатика(ОГЭ)")
+        item5 = types.KeyboardButton("Химия(ОГЭ)")
+        item6 = types.KeyboardButton("Биология(ОГЭ)")
+        item7 = types.KeyboardButton("География(ОГЭ)")
+        item8 = types.KeyboardButton("Обществознание(ОГЭ)")
+        item9 = types.KeyboardButton("История(ОГЭ)")
+        item10 = types.KeyboardButton('/stats')
+        item11 = types.KeyboardButton('/help')
+        markup.add(item1, item2)
+        markup.add(item3, item4)
+        markup.add(item5, item6)
+        markup.add(item7, item8)
+        markup.add(item9)
+        markup.add(item10, item11)
+        await User.predmet.set()  # включаем состояние выбора предмета
+        await message.answer("Выберите предмет", reply_markup=markup)
 
 
 @dp.message_handler(lambda message: message.text.lower() == '/ege', state=User.examen)  # команда "/ege"
-async def process_ege(message: types.Message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    item1 = types.KeyboardButton("Профильная математика")
-    item2 = types.KeyboardButton("Базовая математика")
-    item3 = types.KeyboardButton("Русский язык(ЕГЭ)")
-    item4 = types.KeyboardButton("Физика(ЕГЭ)")
-    item5 = types.KeyboardButton("Информатика(ЕГЭ)")
-    item6 = types.KeyboardButton("Химия(ЕГЭ)")
-    item7 = types.KeyboardButton("Биология(ЕГЭ)")
-    item8 = types.KeyboardButton("География(ЕГЭ)")
-    item9 = types.KeyboardButton("Обществознание(ЕГЭ)")
-    item10 = types.KeyboardButton("История(ЕГЭ)")
-    item11 = types.KeyboardButton('/stats')
-    item12 = types.KeyboardButton('/help')
-    markup.add(item1, item2)
-    markup.add(item3, item4)
-    markup.add(item5, item6)
-    markup.add(item7, item8)
-    markup.add(item9, item10)
-    markup.add(item11, item12)
-    await User.predmet.set()  # включаем состояние выбора предмета
-    await message.answer("Выберите предмет", reply_markup=markup)
+async def process_ege(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['vibor_ex'] = 'ege'
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        item1 = types.KeyboardButton("Профильная математика")
+        item2 = types.KeyboardButton("Базовая математика")
+        item3 = types.KeyboardButton("Русский язык(ЕГЭ)")
+        item4 = types.KeyboardButton("Физика(ЕГЭ)")
+        item5 = types.KeyboardButton("Информатика(ЕГЭ)")
+        item6 = types.KeyboardButton("Химия(ЕГЭ)")
+        item7 = types.KeyboardButton("Биология(ЕГЭ)")
+        item8 = types.KeyboardButton("География(ЕГЭ)")
+        item9 = types.KeyboardButton("Обществознание(ЕГЭ)")
+        item10 = types.KeyboardButton("История(ЕГЭ)")
+        item11 = types.KeyboardButton('/stats')
+        item12 = types.KeyboardButton('/help')
+        markup.add(item1, item2)
+        markup.add(item3, item4)
+        markup.add(item5, item6)
+        markup.add(item7, item8)
+        markup.add(item9, item10)
+        markup.add(item11, item12)
+        await User.predmet.set()  # включаем состояние выбора предмета
+        await message.answer("Выберите предмет", reply_markup=markup)
 
 
 @dp.message_handler(lambda message: message.text.lower() not in ['профильная математика',
@@ -180,13 +188,19 @@ async def process_predmet(message: types.Message, state: FSMContext):
     conoge = sqlite3.connect('db/oge.db')
     conege = sqlite3.connect('db/ege.db')
     async with state.proxy() as data:
-        data['predmet'] = message.text  # сохраняем выбранный пользователем предмет в оперативную память в виде словаря
+        data['predmet'] = message.text.lower()  # сохраняем выбранный пользователем предмет в оперативную память в виде словаря
         await User.answer.set()  # включаем состояние проверки первого ответа
         await state.update_data(predmet=message.text)
-        if message.text.lower() == "русский язык(егэ)":  # а дальше идут проверки, какой предмет выбрал пользователь
+        slovar = {'русский язык(егэ)': 'rus_yaz', 'профильная математика': 'mat_prof', 'базовая математика': 'mat_baz',
+                  'математика': 'matem', 'русский язык(огэ)': 'rus_yaz', 'физика(огэ)': 'fizika',
+                  'информатика(огэ)': 'infor', 'химия(огэ)': 'him', 'биология(огэ)': 'biol', 'география(огэ)': 'geog',
+                  'обществознание(огэ)': 'obshes', 'история(огэ)': 'hist', 'физика(егэ)': 'fizika', 'информатика(егэ)': 'infor',
+                  "химия(егэ)": 'him', 'биология(егэ)': 'biol', 'география(егэ)': 'geog', 'обществознание(егэ)': 'obshes',
+                  'история(егэ)': 'hist'}
+        if data['vibor_ex'] == 'ege':
             cur = conege.cursor()
-            result = cur.execute("""SELECT task, answer FROM rus_yaz
-                WHERE id IN (SELECT id FROM rus_yaz ORDER BY RANDOM() LIMIT 1)""").fetchall()
+            result = cur.execute(f"""SELECT task, answer FROM {slovar[data['predmet']].lower()}
+                            WHERE id IN (SELECT id FROM rus_yaz ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
@@ -194,204 +208,17 @@ async def process_predmet(message: types.Message, state: FSMContext):
                 await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conege.close()
-        if message.text.lower() == "русский язык(огэ)":
+        if data['vibor_ex'] == 'oge':
             cur = conoge.cursor()
-            result = cur.execute("""SELECT task, answer FROM rus_yaz
-                WHERE id IN (SELECT id FROM rus_yaz ORDER BY RANDOM() LIMIT 1)""").fetchall()
+            result = cur.execute(f"""SELECT task, answer FROM {slovar[data['predmet']].lower()}
+                            WHERE id IN (SELECT id FROM rus_yaz ORDER BY RANDOM() LIMIT 1)""").fetchall()
             for elem in result:
                 print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
                       f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conoge.close()
-        if message.text.lower() == 'физика(егэ)':
-            cur = conege.cursor()
-            result = cur.execute("""SELECT task, answer FROM fizika
-                WHERE id IN (SELECT id FROM fizika ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
+                data['answer'] = elem[1]  # сохраняем правильный ответ
                 await bot.send_photo(message.from_user.id, photo=elem[0])
                 await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
             conege.close()
-        if message.text.lower() == 'информатика(егэ)':
-            cur = conege.cursor()
-            result = cur.execute("""SELECT task, answer FROM infor
-                WHERE id IN (SELECT id FROM infor ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conege.close()
-        if message.text.lower() == 'химия(егэ)':
-            cur = conege.cursor()
-            result = cur.execute("""SELECT task, answer FROM him
-                WHERE id IN (SELECT id FROM him ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conege.close()
-        if message.text.lower() == 'биология(егэ)':
-            cur = conege.cursor()
-            result = cur.execute("""SELECT task, answer FROM biol
-                WHERE id IN (SELECT id FROM biol ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conege.close()
-        if message.text.lower() == 'география(егэ)':
-            cur = conege.cursor()
-            result = cur.execute("""SELECT task, answer FROM geog
-                WHERE id IN (SELECT id FROM geog ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conege.close()
-        if message.text.lower() == 'обществознание(егэ)':
-            cur = conege.cursor()
-            result = cur.execute("""SELECT task, answer FROM obshes
-                WHERE id IN (SELECT id FROM obshes ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conege.close()
-        if message.text.lower() == 'история(егэ)':
-            cur = conege.cursor()
-            result = cur.execute("""SELECT task, answer FROM hist
-                WHERE id IN (SELECT id FROM hist ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conege.close()
-        if message.text.lower() == "профильная математика":
-            cur = conege.cursor()
-            result = cur.execute("""SELECT task, answer FROM mat_prof
-                WHERE id IN (SELECT id FROM mat_prof ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conege.close()
-        if message.text.lower() == "базовая математика":
-            cur = conege.cursor()
-            result = cur.execute("""SELECT task, answer FROM mat_baz
-                WHERE id IN (SELECT id FROM mat_baz ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conege.close()
-        if message.text.lower() == "математика":
-            cur = conoge.cursor()
-            result = cur.execute("""SELECT task, answer FROM matem
-                 WHERE id IN (SELECT id FROM matem ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conoge.close()
-        if message.text.lower() == "физика(огэ)":
-            cur = conoge.cursor()
-            result = cur.execute("""SELECT task, answer FROM fizika
-                 WHERE id IN (SELECT id FROM fizika ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conoge.close()
-        if message.text.lower() == "информатика(огэ)":
-            cur = conoge.cursor()
-            result = cur.execute("""SELECT task, answer FROM infor
-                 WHERE id IN (SELECT id FROM infor ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conoge.close()
-        if message.text.lower() == "химия(огэ)":
-            cur = conoge.cursor()
-            result = cur.execute("""SELECT task, answer FROM him
-                 WHERE id IN (SELECT id FROM him ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conoge.close()
-        if message.text.lower() == "биология(огэ)":
-            cur = conoge.cursor()
-            result = cur.execute("""SELECT task, answer FROM biol
-                 WHERE id IN (SELECT id FROM biol ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conoge.close()
-        if message.text.lower() == "география(огэ)":
-            cur = conoge.cursor()
-            result = cur.execute("""SELECT task, answer FROM geog
-                 WHERE id IN (SELECT id FROM geog ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conoge.close()
-        if message.text.lower() == "обществознание(огэ)":
-            cur = conoge.cursor()
-            result = cur.execute("""SELECT task, answer FROM obshes
-                 WHERE id IN (SELECT id FROM obshes ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conoge.close()
-        if message.text.lower() == "история(огэ)":
-            cur = conoge.cursor()
-            result = cur.execute("""SELECT task, answer FROM hist
-                 WHERE id IN (SELECT id FROM hist ORDER BY RANDOM() LIMIT 1)""").fetchall()
-            for elem in result:
-                print(f'{message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.username}: '
-                      f'{elem[1]}')
-                data['answer'] = elem[1]
-                await bot.send_photo(message.from_user.id, photo=elem[0])
-                await bot.send_message(message.from_user.id, 'Ваш ответ:', reply_markup=types.ReplyKeyboardRemove())
-            conoge.close()
 
 
 @dp.message_handler(state=User.answer)  # хандлер принимает введенный пользователем ответ
